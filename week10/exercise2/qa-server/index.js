@@ -8,6 +8,8 @@ import passport from 'passport';
 import LocalStrategy from 'passport-local';
 import session from 'express-session';
 
+import cors from "cors";
+
 // init
 const app = express();
 const port = 3001;
@@ -45,6 +47,13 @@ app.use(session({
   saveUninitialized: false,
 }));
 app.use(passport.authenticate("session"));
+
+const corsOptions = {
+  origin: 'http://localhost:5173',
+  optionsSuccessState: 200
+};
+
+app.use(cors(corsOptions));
 
 /* ROUTES */
 
