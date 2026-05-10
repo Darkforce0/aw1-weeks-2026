@@ -23,7 +23,7 @@ function Answers (props) {
     setAnswers(oldAnswers => {
       return oldAnswers.map(ans => {
         if(ans.id === answerId)
-          return new Answer(ans.id, ans.text, ans.email, ans.userId, ans.date, ans.score +1);
+          return new Answer(ans.id, ans.text, ans.author.email, ans.author.id, ans.date, ans.score + 1);
         else
           return ans;
       });

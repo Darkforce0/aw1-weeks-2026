@@ -8,7 +8,7 @@ const getQuestions = async () => {
   const response = await fetch(SERVER_URL + "/api/questions");
   if(response.ok) {
     const questionsJson = await response.json();
-    return questionsJson.map(q => new Question(q.id, q.text, q.email, q.userId, q.date));
+    return questionsJson.map(q => new Question(q.id, q.text, q.author.email, q.author.id, q.date));
   }
   else
     throw new Error("Internal server error");
@@ -20,7 +20,7 @@ const getAnswers = async (questionId) => {
   const response = await fetch(`${SERVER_URL}/api/questions/${questionId}/answers`);
   if(response.ok) {
     const answersJson = await response.json();
-    return answersJson.map(ans => new Answer(ans.id, ans.text, ans.email, ans.userId, ans.date, ans.score));
+    return answersJson.map(ans => new Answer(ans.id, ans.text, ans.author.email, ans.author.id, ans.date, ans.score));
   }
   else
     throw new Error("Ops, there is an error on the server.");
