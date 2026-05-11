@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import { useActionState } from "react";
 import { Alert, Button, Form, Row, Col } from "react-bootstrap";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
+import API from "../API/API.js";
 
 export function EditAnswerForm(props) {
   /*// 1. metodo con useParams
@@ -19,7 +20,7 @@ export function EditAnswerForm(props) {
   return (
     <>
     {answer ?
-      <AnswerForm answer={answer} editAnswer={props.editAnswer} /> :
+      <AnswerForm answer={answer} editAnswer={props.editAnswer} user={props.user} /> :
       <Row>
         <Col as="p" className="lead">Impossible to edit a non-existent answer.</Col>
       </Row>
@@ -34,8 +35,8 @@ export function AnswerForm(props) {
 
   const initialState = {
     text: props.answer?.text,
-    email: props.answer?.author.email,
-    date: props.answer?.date ?? dayjs()
+    email: props.answer?.author.email ?? props.user.username,
+    date: props.answer?.date.format("YYYY-MM-DD") ?? dayjs().format("YYYY-MM-DD")
   };
 
   const handleSubmit = async (prevState, formData) => {
@@ -50,9 +51,23 @@ export function AnswerForm(props) {
     }
 
     if(props.addAnswer)
-      props.addAnswer(answer);
+      // aggiungo la risposta
+      try {
+        await API.addAnswer({...answer, author: {email: props.user.username, id: props.user.id }}, questionId);
+      }
+      catch(serverError) {
+        answer.error = serverError;
+        console.error(serverError);
+        return answer;
+      }
     else
-      props.editAnswer({id: props.answer.id, ... answer});
+      try {
+        await API.updateAnswer({id: props.answer.id, ...answer, author: props.answer.author, score: props.answer.score});
+      }
+      catch(serverError) {
+        answer.error = serverError;
+        return answer;
+      }
 
     navigate(`/questions/${questionId}`);
   }
@@ -69,11 +84,11 @@ export function AnswerForm(props) {
         </Form.Group>
         <Form.Group className="mb-3">
           <Form.Label>e-mail</Form.Label>
-          <Form.Control name="email" type="email" required={true} defaultValue={state.email}></Form.Control>
+          <Form.Control name="email" type="email" required={true} defaultValue={state.email} disabled></Form.Control>
         </Form.Group>
         <Form.Group className="mb-3">
           <Form.Label>Date</Form.Label>
-          <Form.Control name="date" type="date" required={true} defaultValue={state.date.format("YYYY-MM-DD")}></Form.Control>
+          <Form.Control name="date" type="date" required={true} defaultValue={state.date}></Form.Control>
         </Form.Group>
         {props.addAnswer && <Button variant="primary" type="submit">Add</Button>}
         {props.editAnswer && <Button variant="success" type="submit">Edit</Button>}

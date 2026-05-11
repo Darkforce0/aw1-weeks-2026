@@ -8,26 +8,33 @@ import { Answer } from "../models/QAModels.js";
 
 function Answers (props) {
   const [answers, setAnswers] = useState([]);
-
   const { questionId } = useParams();
 
+  const getAnswers = async () => {
+    const answers = await API.getAnswers(questionId);
+    setAnswers(answers);
+  }
+
   useEffect(() => {
-    const getAnswers = async () => {
-      const answers = await API.getAnswers(questionId);
-      setAnswers(answers);
-    }
     getAnswers();
   }, []);
 
   const voteUp = (answerId) => {
     setAnswers(oldAnswers => {
       return oldAnswers.map(ans => {
-        if(ans.id === answerId)
-          return new Answer(ans.id, ans.text, ans.author.email, ans.author.id, ans.date, ans.score + 1);
+        if(ans.id === answerId) {
+          const answer = new Answer(ans.id, ans.text, ans.author.email, ans.author.id, ans.date, ans.score +1);
+          answer.voted = true;
+          return answer;
+        }
         else
           return ans;
       });
     });
+
+    API.voteUp(answerId)
+      .then(() => getAnswers())
+      .catch(err => console.log(err));
   }
 
   const deleteAnswer = (answerId) => {
@@ -43,8 +50,8 @@ function Answers (props) {
     </Row>
     <Row>
       <Col lg={10} className="mx-auto">
-        <AnswerTable answers={answers} voteUp={voteUp} deleteAnswer={deleteAnswer}/>
-        <Link className="btn btn-primary" to="answers/new">Add</Link>
+        <AnswerTable answers={answers} voteUp={voteUp} deleteAnswer={deleteAnswer} user={props.user}/>
+        {props.user && <Link className="btn btn-primary" to="answers/new">Add</Link>}
       </Col>
     </Row>
     </>
@@ -76,7 +83,7 @@ function AnswerTable (props) {
         </tr>
       </thead>
       <tbody>
-        { sortedAnswers.map((ans) => <AnswerRow key={ans.id} answer={ans} voteUp={props.voteUp} handleEdit={props.handleEdit} deleteAnswer={props.deleteAnswer} />) }
+        { sortedAnswers.map((ans) => <AnswerRow key={ans.id} answer={ans} voteUp={props.voteUp} handleEdit={props.handleEdit} deleteAnswer={props.deleteAnswer} user={props.user} />) }
       </tbody>
     </Table>
   );
@@ -102,10 +109,12 @@ function AnswerData(props) {
 function AnswerAction(props) {
   return(
     <td>
-      <Button variant="warning" onClick={() => props.voteUp(props.answer.id)}><i className="bi bi-arrow-up" /></Button>
+      <Button variant="warning" onClick={() => props.voteUp(props.answer.id)} disabled={!props.user || props.user?.username === props.answer.author.email || props.answer.voted}><i className="bi bi-arrow-up" /></Button>
       {/*<Link className="btn btn-primary mx-1" to={`answers/${props.answer.id}/edit`}><i className="bi bi-pencil-square" /></Link>*/}
-      <Link className="btn btn-primary mx-1" to={`answers/${props.answer.id}/edit`} state={props.answer.serialize()}><i className="bi bi-pencil-square" /></Link>
-      <Button variant="danger" onClick={() => props.deleteAnswer(props.answer.id)}><i className="bi bi-trash" /></Button>
+      { props.user?.username === props.answer.author.email && <>
+        <Link className="btn btn-primary mx-1" to={`answers/${props.answer.id}/edit`} state={props.answer.serialize()}><i className="bi bi-pencil-square" /></Link>
+        <Button variant="danger" onClick={() => props.deleteAnswer(props.answer.id)}><i className="bi bi-trash" /></Button>
+      </> }
     </td>
   );
 }

@@ -26,5 +26,116 @@ const getAnswers = async (questionId) => {
     throw new Error("Ops, there is an error on the server.");
 }
 
-const API = { getAnswers, getQuestions };
+// vota una certa risposta
+// POST /api/answers/<id>/vote
+const voteUp = async (answerId) => {
+  const response = await fetch(`${SERVER_URL}/api/answers/${answerId}/vote`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({vote: "up"}),
+    credentials: "include"
+  });
+
+  // TODO: migliorare gestione errori
+  if(!response.ok) {
+    const errMessage = await response.json();
+    throw errMessage;
+  }
+  else return null;
+}
+
+// aggiungi una nuova risposta
+// POST /api/questions/<id>/answers
+const addAnswer = async (answer, questionId) => {
+  const response = await fetch(`${SERVER_URL}/api/questions/${questionId}/answers`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({text: answer.text, author: answer.author, score: 0, date: answer.date}),
+    credentials: "include"
+  });
+
+  // TODO: migliorare gestione errori
+  if(!response.ok) {
+    let errMessage = await response.json();
+    if(response.status === 422)
+      errMessage = `${errMessage.errors[0].msg} for ${errMessage.errors[0].path}.`
+    else
+      errMessage = errMessage.error;
+    throw errMessage;
+  }
+  else return null;
+}
+
+// modifica una risposta esistente
+// PUT /api/answers/<id>
+const updateAnswer = async (answer) => {
+  const response = await fetch(`${SERVER_URL}/api/answers/${answer.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({text: answer.text, author: answer.author, score: answer.score, date: answer.date}),
+    credentials: "include"
+  });
+
+  // TODO: migliorare gestione errori
+  if(!response.ok) {
+    let errMessage = await response.json();
+    if(response.status === 422)
+      errMessage = `${errMessage.errors[0].msg} for ${errMessage.errors[0].path}.`
+    else
+      errMessage = errMessage.error;
+    throw errMessage;
+  }
+  else return null;
+}
+
+// effettua il login
+const logIn = async (credentials) => {
+  const response = await fetch(SERVER_URL + "/api/sessions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(credentials),
+  });
+  if(response.ok) {
+    const user = await response.json();
+    return user;
+  }
+  else {
+    const errDetails = response.headers.get("WWW-Authenticate");
+    throw errDetails;
+  }
+};
+
+// recupera le info utente dopo il login
+const getUserInfo = async () => {
+  const response = await fetch(SERVER_URL + "/api/sessions/current", {
+    credentials: "include",
+  });
+  const user = await response.json();
+  if (response.ok) {
+    return user;
+  } else {
+    throw user.error;
+  }
+};
+
+// effettua il logout
+const logOut = async() => {
+  const response = await fetch(SERVER_URL + "/api/sessions/current", {
+    method: "DELETE",
+    credentials: "include"
+  });
+  if (response.ok)
+    return null;
+}
+
+const API = { getAnswers, getQuestions, voteUp, addAnswer, updateAnswer, logIn, getUserInfo, logOut };
 export default API;
